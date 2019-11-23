@@ -31,3 +31,26 @@ class AdamOpt():
             x = nx
 
         return x
+
+
+class MomemtunOpt():
+
+    def __init__(self, n, alpha=1e-4, beta=1e-4):
+        self._alpha = alpha
+        self._beta = beta
+        self._v = np.zeros(n)
+
+    def step(self, f, x):
+        g = gradient(f, x)
+        self._v = self._beta * self._v - self._alpha * g
+        return x + self._v
+
+    def optimize(self, f, x, tol=1e-10):
+        diff = np.Inf
+
+        while diff > tol:
+            nx = self.step(f, x)
+            diff = np.abs(f(nx) - f(x))
+            x = nx
+
+        return x
