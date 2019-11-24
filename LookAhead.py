@@ -11,6 +11,9 @@ class LookAheadOpt():
 
     def step(self, f, x):
         nx = np.copy(x)
+        # TODO: should the la opt each step using the initial state of the called
+        # opt or continuing update the called opt
+        self._opt.init()
 
         for _ in range(self._k):
             nx = self._opt.step(f, nx)

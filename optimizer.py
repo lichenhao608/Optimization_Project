@@ -9,9 +9,15 @@ class AdamOpt():
         self._gamma_v = gamma_v
         self._gamma_s = gamma_s
         self._eps = eps
+        self._n = n
         self._k = 0
-        self._s = np.zeros(n)
-        self._v = np.zeros(n)
+        self._s = np.zeros(self._n)
+        self._v = np.zeros(self._n)
+
+    def init(self):
+        self._k = 0
+        self._s = np.zeros(self._n)
+        self._v = np.zeros(self._n)
 
     def step(self, f, x):
         g = gradient(f, x)
@@ -38,7 +44,12 @@ class MomemtunOpt():
     def __init__(self, n, alpha=1e-4, beta=1e-4):
         self._alpha = alpha
         self._beta = beta
+        self._n = n
+        self._test = 0
         self._v = np.zeros(n)
+
+    def init(self):
+        self._v = np.zeros(self._n)
 
     def step(self, f, x):
         g = gradient(f, x)
