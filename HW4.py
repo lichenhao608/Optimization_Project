@@ -60,25 +60,12 @@ def augmented_lagrange_method(func, h, x, k_max):
     return x, f, iter
 
 if __name__ == "__main__":
+    parameters = {"h": constraint_function}
 
-    result = evaluate(Rosenbrock, generate_random_num(),constraint_function, 1000)
-    result_test = evaluate(test_function, generate_random_num(), constraint_function , 1000)
+    result = evaluate("Augmented Lagrange", augmented_lagrange_method, Rosenbrock, generate_random_num(), parameters, 1000)
+    result_test = evaluate("Augmented Lagrange", augmented_lagrange_method, test_function, generate_random_num(), parameters, 1000)
 
     result_table = [result, result_test]
-
-    for i in range(0,2):
-        for j in range(0,4):
-            if i == 0 and j == 0:
-                print('Test Augmented Lagrange Method on Rosenbrock\nXmean')
-            elif i == 1 and j == 0:
-                print('Test Augmented Lagrange Method on Test Function\nXmean')
-            elif j == 1:
-                print('FMean')
-            elif j == 2:
-                print('Iter Count Mean')
-            elif j == 3:
-                print('Wall Clock Time Mean')
-            print(result_table[i][j])
-        print('\n')
+    print_table(result_table, "Augmented Lagrange Method", ["Rosenbrock", "Test Function"])
 
 

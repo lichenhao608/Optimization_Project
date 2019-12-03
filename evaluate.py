@@ -6,7 +6,6 @@ import time
 import math
 from numpy import * 
 from gradient_test import gradient
-from HW4 import augmented_lagrange_method
 
 def random_sign():
     sign = '+'
@@ -14,11 +13,11 @@ def random_sign():
         sign = '-'
     return sign 
 
-def generate_random_num():
+def generate_random_num(runs = 50, number_of_variables = 10):
     random_num = []
-    for i in range(0,50):
+    for i in range(0, runs):
         temp = []
-        for j in range(0,10):  
+        for j in range(0, number_of_variables):
             if random_sign() == '+':
                 y = 2 * random.random()
             else:
@@ -45,11 +44,14 @@ def std_vec(func, mean):
     std_mean = np.sqrt(sum/49)
     return std_mean
 
-def evaluate(func, random_num, h, k_max):
+def evaluate(method, optimizer, func, starting_points, extra_parameters = None, k_max = 1000):
 
     result_array = []
 
     x_total = [0,0,0,0,0,0,0,0,0,0]
+    if method == "Golden Section Search":
+        x_total = 0
+    
     x_array = []
     f_total = 0
     f_array = []
@@ -58,10 +60,14 @@ def evaluate(func, random_num, h, k_max):
     time_total = 0
     time_array = []
    
-    for i in random_num:
+    for i in starting_points:
         
         t0 = time.time()
-        x_final, f_final, iter = augmented_lagrange_method(func,h, i, k_max)
+        x_final, f_final, iter = 0, 0, 0
+        if method == "Augmented Lagrange":
+            x_final, f_final, iter = optimizer(func, extra_parameters["h"], i, k_max)
+        elif method == "Golden Section Search":
+            x_final, f_final, iter = optimizer(func, i, 100)
         process_time = time.time() - t0
         time_total += process_time
         x_array.append(x_final)
@@ -73,10 +79,10 @@ def evaluate(func, random_num, h, k_max):
         time_array.append(process_time)
             
     
-    x_avg = x_total/50
-    f_avg = f_total/50
-    iter_avg = iter_total/50
-    time_avg = time_total/50
+    x_avg = x_total/len(starting_points)
+    f_avg = f_total/len(starting_points)
+    iter_avg = iter_total/len(starting_points)
+    time_avg = time_total/len(starting_points)
 
     std_x = std_vec(x_array, x_avg)
     std_f = std(f_array, f_avg)
@@ -94,3 +100,17 @@ def evaluate(func, random_num, h, k_max):
     result_array.append(time_str)
 
     return result_array
+
+def print_table(result_table, Method, function_list):
+    for i in range(0, len(result_table)):
+        for j in range(0,4):
+            if j == 0:
+                print('Test ' + Method + ' on ' + function_list[i] + '\nXmean')
+            elif j == 1:
+                print('FMean')
+            elif j == 2:
+                print('Iter Count Mean')
+            elif j == 3:
+                print('Wall Clock Time Mean')
+            print(result_table[i][j])
+        print('\n')
