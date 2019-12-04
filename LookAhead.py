@@ -1,6 +1,7 @@
+from torch.optim.optimizer import Optimizer
+import torch
 import numpy as np
 from methods import gradient
-from torch.optim import Optimizer
 from collections import defaultdict
 
 
@@ -33,80 +34,105 @@ class LookAheadOpt():
         return x
 
 
-class LookAheadOptNN(Optimizer):
-    '''Implements lookahead optimizer by Michael R. Zhang
-    Paper: zhang2019lookahead,
-            title={Lookahead Optimizer: k steps forward, 1 step back},
-            author={Michael R. Zhang and James Lucas and Geoffrey Hinton and Jimmy Ba},
-            year={2019},
-            eprint={1907.08610},
-            archivePrefix={arXiv},
-            primaryClass={cs.LG}
-    Link: https://arxiv.org/abs/1907.08610
+class Lookahead(Optimizer):
+    r"""PyTorch implementation of the lookahead wrapper.
+    Lookahead Optimizer: https://arxiv.org/abs/1907.08610
+    Source code: https://github.com/michaelrzhang/lookahead
+    """
 
-    Args:
-        opt (Optimizer): Another optimizer as the based optimizer to run.
-        k (int, optional): Synchronization period.
-        alpha (float, optional): slow weight step size.
-    '''
+    def __init__(self, optimizer, la_steps=5, la_alpha=0.8, pullback_momentum="none"):
+        """optimizer: inner optimizer
+        la_steps (int): number of lookahead steps
+        la_alpha (float): linear interpolation factor. 1.0 recovers the inner optimizer.
+        pullback_momentum (str): change to inner optimizer momentum on interpolation update
+        """
+        self.optimizer = optimizer
+        self._la_step = 0  # counter for inner optimizer
+        self.la_alpha = la_alpha
+        self._total_la_steps = la_steps
+        pullback_momentum = pullback_momentum.lower()
+        assert pullback_momentum in ["reset", "pullback", "none"]
+        self.pullback_momentum = pullback_momentum
 
-    def __init__(self, opt, k=5, alpha=0.5):
-        assert isinstance(opt, Optimizer), 'Should have a optimizer method'
-
-        self.opt = opt
-        self.k = k
-        self.alpha = alpha
-        self.param_groups = self.opt.param_groups
         self.state = defaultdict(dict)
-        self.fast_state = self.opt.state
 
-    def step(self, closure=None):
-        '''Performs a single optimization step
+        # Cache the current optimizer parameters
+        for group in optimizer.param_groups:
+            for p in group['params']:
+                param_state = self.state[p]
+                param_state['cached_params'] = torch.zeros_like(p.data)
+                param_state['cached_params'].copy_(p.data)
+                if self.pullback_momentum == "pullback":
+                    param_state['cached_mom'] = torch.zeros_like(p.data)
 
-        Args:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        '''
-        for _ in range(k):
-            loss = self.opt.step(closure)
+    def __getstate__(self):
+        return {
+            'state': self.state,
+            'optimizer': self.optimizer,
+            'la_alpha': self.la_alpha,
+            '_la_step': self._la_step,
+            '_total_la_steps': self._total_la_steps,
+            'pullback_momentum': self.pullback_momentum
+        }
 
-        for group in self.opt.param_groups:
-            for fast in group['params']:
-                param_state = self.state[fast]
-                if "slow_param" not in param_state:
-                    param_state['slow_param'] = torch.zeros_like(fast.data)
-                slow = param_state['slow_param']
-                slow += (fast.data - slow) * self.alpha
-                fast.data.copy(slow)
+    def zero_grad(self):
+        self.optimizer.zero_grad()
 
-        return loss
+    def get_la_step(self):
+        return self._la_step
 
     def state_dict(self):
-        fast_state_dict = self.opt.state_dict()
-        slow_state = {
-            (id(k) if isinstance(k, torch.Tensor) else k): v
-            for k, v in self.state.items()
-        }
-        fast_state = fast_state_dict['state']
-        param_groups = fast_state_dict['param_groups']
-        return {
-            'fast_state': fast_state,
-            'slow_state': slow_state,
-            'param_groups': param_groups
-        }
+        return self.optimizer.state_dict()
 
     def load_state_dict(self, state_dict):
-        slow_state_dict = {
-            "state": state_dict["slow_state"],
-            "param_groups": state_dict["param_groups"],
-        }
-        fast_state_dict = {
-            "state": state_dict["fast_state"],
-            "param_groups": state_dict["param_groups"],
-        }
-        super(LookAheadOptNN, self).load_state_dict(slow_state_dict)
-        self.optimizer.load_state_dict(fast_state_dict)
-        self.fast_state = self.optimizer.state
+        self.optimizer.load_state_dict(state_dict)
 
-    def add_param_group(self, param_group):
-        self.optimizer.add_param_group(param_group)
+    def _backup_and_load_cache(self):
+        """Useful for performing evaluation on the slow weights (which typically generalize better)
+        """
+        for group in self.optimizer.param_groups:
+            for p in group['params']:
+                param_state = self.state[p]
+                param_state['backup_params'] = torch.zeros_like(p.data)
+                param_state['backup_params'].copy_(p.data)
+                p.data.copy_(param_state['cached_params'])
+
+    def _clear_and_load_backup(self):
+        for group in self.optimizer.param_groups:
+            for p in group['params']:
+                param_state = self.state[p]
+                p.data.copy_(param_state['backup_params'])
+                del param_state['backup_params']
+
+    @property
+    def param_groups(self):
+        return self.optimizer.param_groups
+
+    def step(self, closure=None):
+        """Performs a single Lookahead optimization step.
+        Arguments:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
+        loss = self.optimizer.step(closure)
+        self._la_step += 1
+
+        if self._la_step >= self._total_la_steps:
+            self._la_step = 0
+            # Lookahead and cache the current optimizer parameters
+            for group in self.optimizer.param_groups:
+                for p in group['params']:
+                    param_state = self.state[p]
+                    p.data.mul_(self.la_alpha).add_(
+                        1.0 - self.la_alpha, param_state['cached_params'])  # crucial line
+                    param_state['cached_params'].copy_(p.data)
+                    if self.pullback_momentum == "pullback":
+                        internal_momentum = self.optimizer.state[p]["momentum_buffer"]
+                        self.optimizer.state[p]["momentum_buffer"] = internal_momentum.mul_(self.la_alpha).add_(
+                            1.0 - self.la_alpha, param_state["cached_mom"])
+                        param_state["cached_mom"] = self.optimizer.state[p]["momentum_buffer"]
+                    elif self.pullback_momentum == "reset":
+                        self.optimizer.state[p]["momentum_buffer"] = torch.zeros_like(
+                            p.data)
+
+        return loss
