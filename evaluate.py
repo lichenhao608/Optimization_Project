@@ -68,6 +68,8 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
             x_final, f_final, iter = optimizer(func, extra_parameters["h"], i, k_max)
         elif method == "Golden Section Search":
             x_final, f_final, iter = optimizer(func, i, 100)
+        elif method == "Gradient Descent":
+            x_final, f_final, iter = optimizer(func, i, 10**(-3))
         process_time = time.time() - t0
         time_total += process_time
         x_array.append(x_final)
@@ -81,6 +83,7 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
     
     x_avg = x_total/len(starting_points)
     f_avg = f_total/len(starting_points)
+
     iter_avg = iter_total/len(starting_points)
     time_avg = time_total/len(starting_points)
 
@@ -98,12 +101,13 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
     result_array.append(f)
     result_array.append(iter_str)
     result_array.append(time_str)
+    result_array.append(min(f_array))
 
     return result_array
 
 def print_table(result_table, Method, function_list):
     for i in range(0, len(result_table)):
-        for j in range(0,4):
+        for j in range(0,5):
             if j == 0:
                 print('Test ' + Method + ' on ' + function_list[i] + '\nXmean')
             elif j == 1:
@@ -112,5 +116,7 @@ def print_table(result_table, Method, function_list):
                 print('Iter Count Mean')
             elif j == 3:
                 print('Wall Clock Time Mean')
+            elif j == 4:
+                print("FMin")
             print(result_table[i][j])
         print('\n')
