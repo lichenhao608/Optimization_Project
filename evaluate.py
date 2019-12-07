@@ -72,6 +72,8 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
             x_final, f_final, iter = optimizer(func, i, 10**(-3))
         elif method == "Conjugate Gradient Descent":
             x_final, f_final, iter = optimizer(func, i)
+        elif method == "Quasi_Newton_BFGS":
+            x_final, f_final, iter = optimizer(func, i)
         process_time = time.time() - t0
         time_total += process_time
         x_array.append(x_final)
