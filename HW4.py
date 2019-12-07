@@ -35,29 +35,37 @@ def gradient_descent(func, x0, p=0, c=0, rou=0, lam=0, alpha=0.001):
     return x_final
 
 def penalty_function(f, h, x, rou,lam):
-    return f(x) + rou/2 * sum((h(x))**2) - (lam * h(x))
+    
+    return f(x) + rou/2 * (h(x)) ** 2 - dot(lam, [h(x)])
 
 def augmented_lagrange_method(func, h, x, k_max):
-
+    
     rou = 1
     y = 2
-    lam = zeros(len(x))
+    lam = zeros(1)
     precision = 1
     iter = 0
-
-    while iter < k_max and norm(precision) > 1e-6:
-
+    
+    while iter < 1000 and norm(precision) > 1e-6:
+        
         prev_x = x
         x = gradient_descent(func,x, penalty_function, h, rou, lam)
+        print(x)
+        if(iter == 9 or iter == 8):
+            print(penalty_function(func, h, x, rou, lam))
+            print(h(x))
+            #print(x - 0.001 * gradient(func, x, penalty_function, h,rou, lam))
+            print('')
+    
         rou *= y
         lam -= rou*h(x)
         precision = abs(x-prev_x)
 
-        iter += 1
+    iter += 1
 
-    f = func(x)
+f = func(x)
 
-    return x, f, iter
+return x, f, iter
 
 if __name__ == "__main__":
     parameters = {"h": constraint_function}

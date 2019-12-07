@@ -1,25 +1,27 @@
 import numpy as np
 
 
-def gradient(f, x, c=0, rou=0, lam=0, h=1e-10):
+def gradient(f, x, p=0, c=0, rou=0, lam=0, h=1e-10):
     '''
-    Calculate the gradient of f at x by using forward difference
-    Args:
+        Calculate the gradient of f at x by using forward difference
+        Args:
         f: function that want to find the gradient
         x: the position where want to find the gradient
-    Returns:
+        Returns:
         grad: an array of gradients for each dimension
-    '''
+        '''
     temp = []
     N = len(x)
-
+    #print(lam * c(x))
+    
     for i in range(N):
         xx = np.copy(x)
         xx[i] += h
         if (rou==0 and lam==0):
             temp.append((f(xx) - f(x)) / h)
         else:
-            pass
+            temp.append((p(f, c, xx, rou,lam)- p(f, c, x, rou, lam))/ h)
+    
     return np.array(temp)
 
 def test_function(x):
