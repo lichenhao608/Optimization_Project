@@ -65,3 +65,22 @@ class MomemtunOpt():
             x = nx
 
         return x
+
+class gradient_descent_methods():
+    
+    def __init__(self, alpha = 0.001):
+        self._alpha = alpha
+    
+    def step(self, f, x):
+        x = x - self._alpha * gradient(f, x)
+        return x
+    
+    def optimize(self, f, x, tol=1e-10):
+        diff = np.inf
+        
+        while diff > tol:
+            nx = self.step(f, x)
+            diff = np.abs(f(nx) - f(x))
+            x = nx
+        
+        return x
