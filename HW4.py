@@ -26,11 +26,13 @@ def gradient_descent(func, x0, p=0, c=0, rou=0, lam=0, alpha=0.001):
     iter = 0
     precision = 1
 
-    while iter < 10000 and norm(precision) > 1e-4:
+    while iter < 10000 and norm(precision) > 1e-6:
         prev_x = x_final
-        x_final = x_final - alpha * gradient(func, x_final)
+        x_final = x_final - alpha * gradient(func, x_final, p, c, rou, lam)
         precision = abs(prev_x - x_final)
+        
         iter += 1
+    
    
     return x_final
 
