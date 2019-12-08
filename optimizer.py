@@ -84,3 +84,30 @@ class gradient_descent_methods():
             x = nx
         
         return x
+
+class conjugate_gradient_methods():
+    
+    def __init__(self, f, x,  x_tol = 0.0005, f_tol = 0.01):
+        self._x_tol = x_tol
+        self._f_tol = f_tol
+        self._g = gradient(f,x)
+        self._d = -1 * self._g
+    
+    def step(self, f, x):
+        gprime = gradient(f, x)
+        beta = max(0, np.dot(gprime, gprime - self._g)/(np.dot(self._g, self._g)))
+        dprime = -1 * gprime + beta * self._d
+        x = self.backtracking_line_search(f,x,dprime)
+        self._g = gprime
+        self._d = dprime
+        return x
+    
+    def backtracking_line_search(self, f, x, d, alpha=0.001, p=0.5, beta=1e-4):
+        y = f(x)
+        g = gradient(f,x)
+        
+        while f(x + alpha * d) > y + beta * alpha * (np.dot(g, d)):
+            alpha = alpha * 0.5
+        
+        return x + alpha * d
+
