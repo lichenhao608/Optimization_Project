@@ -4,7 +4,7 @@
 import numpy as np
 
 
-def gradient(f, x, h=1e-15):
+def gradient(f, x, h=1e-10):
     '''
     Calculate the gradient of f at x by using forward difference
 

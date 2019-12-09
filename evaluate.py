@@ -1,19 +1,21 @@
 import sympy
-import numpy as np 
+import numpy as np
 from numpy.linalg import norm
 import random
 import time
 import math
-from numpy import * 
+from numpy import *
 from gradient_test import gradient
+
 
 def random_sign():
     sign = '+'
-    if random.randint(0,2) < 0.5:
+    if random.randint(0, 2) < 0.5:
         sign = '-'
-    return sign 
+    return sign
 
-def generate_random_num(runs = 50, number_of_variables = 10):
+
+def generate_random_num(runs=50, number_of_variables=10):
     random_num = []
     for i in range(0, runs):
         temp = []
@@ -27,6 +29,7 @@ def generate_random_num(runs = 50, number_of_variables = 10):
         random_num.append(temp)
     return random_num
 
+
 def std(func, mean):
     sum = 0
     for i in func:
@@ -35,23 +38,25 @@ def std(func, mean):
     std_mean = math.sqrt(sum/49)
     return std_mean
 
+
 def std_vec(func, mean):
-    
-    sum = np.array([0,0,0,0,0,0,0,0,0,0])
+
+    sum = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     for i in func:
         temp = (i-mean) ** 2
         sum = np.add(temp, sum)
     std_mean = np.sqrt(sum/49)
     return std_mean
 
-def evaluate(method, optimizer, func, starting_points, extra_parameters = None, k_max = 1000):
+
+def evaluate(method, optimizer, func, starting_points, extra_parameters=None, k_max=1000):
 
     result_array = []
 
-    x_total = [0,0,0,0,0,0,0,0,0,0]
+    x_total = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     if method == "Golden Section Search":
         x_total = 0
-    
+
     x_array = []
     f_total = 0
     f_array = []
@@ -59,13 +64,14 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
     iter_array = []
     time_total = 0
     time_array = []
-   
+
     for i in starting_points:
-        
+
         t0 = time.time()
         x_final, f_final, iter = 0, 0, 0
         if method == "Augmented Lagrange":
-            x_final, f_final, iter = optimizer(func, extra_parameters["h"], i, k_max)
+            x_final, f_final, iter = optimizer(
+                func, extra_parameters["h"], i, k_max)
         elif method == "Golden Section Search":
             x_final, f_final, iter = optimizer(func, i, 100)
         elif method == "Gradient Descent":
@@ -83,8 +89,7 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
         iter_total += iter
         iter_array.append(iter)
         time_array.append(process_time)
-            
-    
+
     x_avg = x_total/len(starting_points)
     f_avg = f_total/len(starting_points)
 
@@ -109,9 +114,10 @@ def evaluate(method, optimizer, func, starting_points, extra_parameters = None, 
 
     return result_array
 
+
 def print_table(result_table, Method, function_list):
     for i in range(0, len(result_table)):
-        for j in range(0,5):
+        for j in range(0, 5):
             if j == 0:
                 print('Test ' + Method + ' on ' + function_list[i] + '\nXmean')
             elif j == 1:
