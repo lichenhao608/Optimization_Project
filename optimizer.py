@@ -39,7 +39,7 @@ class AdamOpt():
         return x
 
 
-class MomemtunOpt():
+class MomemtumOpt():
 
     def __init__(self, n, alpha=1e-4, beta=1e-4):
         self._alpha = alpha
@@ -96,13 +96,24 @@ class gradient_descent_methods():
 
 class conjugate_gradient_methods():
 
-    def __init__(self, f, x,  x_tol=0.0005, f_tol=0.01):
+    def __init__(self, n ,x_tol=0.0005, f_tol=0.01):
         self._x_tol = x_tol
         self._f_tol = f_tol
-        self._g = gradient(f, x)
-        self._d = -1 * self._g
+        self.g = 0
+        self._d = 0
+        self._g = self.init_g(n)
+       
+        self.x_old = 0
+
+    def init_g(self, n):
+        ans = []
+        for i in range(n):
+            ans.append(i)
+
+        return ans
 
     def step(self, f, x):
+        d = -1 * self._g
         gprime = gradient(f, x)
         beta = max(0, np.dot(gprime, gprime - self._g) /
                    (np.dot(self._g, self._g)))
@@ -110,9 +121,10 @@ class conjugate_gradient_methods():
         x = self.backtracking_line_search(f, x, dprime)
         self._g = gprime
         self._d = dprime
+        self.x_old = x
         return x
 
-    def backtracking_line_search(self, f, x, d, alpha=0.001, p=0.5, beta=1e-4):
+    def backtracking_line_search(self, f, x, d, alpha=0.1, p=0.5, beta=1e-4):
         y = f(x)
         g = gradient(f, x)
 
@@ -121,8 +133,44 @@ class conjugate_gradient_methods():
 
         return x + alpha * d
 
+class modified_BFGS():
 
-class ArgumentedLagrange():
+    def __init__(self, n):
+        self.m = n
+        self.q = np.identity(self.m)
+
+    def step(self,f,x):
+        q = self.q
+        g = gradient(f,x)
+
+        s = np.dot(-q, g)
+ 
+        xprime = self.line_search(f, x, s)
+        gprime = gradient(f, xprime)
+        
+        rho = np.matrix((xprime - x))
+     
+        y = np.matrix(gprime - g)
+        yprime = y.getI()
+        rhoprime = rho.getI()
+    
+       
+        return xprime
+
+    def line_search(self, f, x, d, alpha= 0.1, p=0.5, beta=1e-4):
+       
+        g = gradient(f, x)
+        
+
+        while f(x + alpha * d) > f(x) + beta * alpha * (np.dot(g, d)):
+            
+            alpha = alpha * 0.5
+            
+
+        return x + alpha * d
+    
+    
+class AugumentedLagrangeOpt():
 
     def __init__(self, h, X, rho=1, gamma=2):
         '''
